@@ -1,5 +1,5 @@
 five = require("johnny-five");
-ik = require("./ik");
+ik = require("./lib/kinematics");
 board = new five.Board({
   debug: false
 });
