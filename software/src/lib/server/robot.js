@@ -1,4 +1,4 @@
-var kinematics = require("./../lib/kinematics");
+var kinematics = require("./../kinematics");
 var method = Robot.prototype;
 
 function Robot(servo1, servo2, servo3, calibration) {
@@ -6,9 +6,6 @@ function Robot(servo1, servo2, servo3, calibration) {
   this._servo2 = servo2;
   this._servo3 = servo3;
   this._calibration = calibration;
-  this._minAngle = 10;
-  this._maxAngle = 20;
-  this._range = this._maxAngle - this._minAngle;
   this._dancer_interval = null;
 }
 
@@ -68,8 +65,8 @@ method.setPosition = function(x, y, z) {
   this.setAngles(t1,t2,t3);
 };
 
-method.reset = function() {
-  this.setPosition(calibration.restPoint.x, calibration.restPoint, calibration.restPoint.z);
+method.resetPosition = function() {
+  this.setPosition(this._calibration.restPoint.x, this._calibration.restPoint.y, this._calibration.restPoint.z);
 };
 
 method.getPositionForAngles = function(t1,t2,t3) {
@@ -85,9 +82,12 @@ method.getAnglesForPosition = function(x,y,z) {
 
 method.startDancing = function() {
   var _dance = function() {
-    var t1 = parseInt((Math.random() * this._range) + this._minAngle, 10);
-    var t2 = parseInt((Math.random() * this._range) + this._minAngle, 10);
-    var t3 = parseInt((Math.random() * this._range) + this._minAngle, 10);
+    var minAngle = 10;
+    var maxAngle = 20;
+    var range = maxAngle - minAngle;
+    var t1 = parseInt((Math.random() * range) + minAngle, 10);
+    var t2 = parseInt((Math.random() * range) + minAngle, 10);
+    var t3 = parseInt((Math.random() * range) + minAngle, 10);
     this.setAngles(t1,t2,t3);
   }.bind(this);
 
@@ -101,6 +101,14 @@ method.stopDancing = function() {
     clearInterval(this._dancer_interval);
     this._dancer_interval = null;
   }
+};
+
+method.getCalibrationData = function() {
+  return this._calibration;
+};
+
+method.setCalibrationData = function(newData) {
+  this._calibration = newData;
 };
 
 module.exports = {};

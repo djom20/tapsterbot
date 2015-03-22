@@ -1,30 +1,30 @@
 #! /usr/local/bin/node
-var application_root = __dirname
-  , parser = require("./parser")
+
+var parser = require("./lib/server/parser")
   , Hapi = require("hapi")
   , path = require("path")
   , five = require("johnny-five")
-  , calibration = require("./calibration")
-  , Robot = require("./robot").Robot
+  , calibration = require("./lib/server/calibration")
+  , Robot = require("./lib/server/robot").Robot;
 
-args = parser.parseArgs();
-calibration.loadDataFromFilePath(args.calibration);
+var args = parser.parseArgs();
+var robot, servo1, servo2, servo3;
 
 var board = new five.Board({ debug: false});
 board.on("ready", function() {
-  var servo1 = five.Servo({
+  servo1 = five.Servo({
     pin: 9,
-    range: [0,90]
+    range: [0,120]
   });
 
-  var servo2 = five.Servo({
+  servo2 = five.Servo({
     pin: 10,
-    range: [0,90]
+    range: [0,120]
   });
 
-  var servo3 = five.Servo({
+  servo3 = five.Servo({
     pin: 11,
-    range: [0,90]
+    range: [0,120]
   });
 
   servo1.on("error", function() {
@@ -38,10 +38,12 @@ board.on("ready", function() {
   });
 
   // Initialize Objects
-  var robot = new Robot(servo1,servo2,servo3,calibration.data);
+  var calibrationData = calibration.getDataFromFilePath(args.calibration);
+  calibrationData = calibrationData == null ? calibration.defaultData : calibrationData;
+  robot = new Robot(servo1,servo2,servo3,calibrationData);
 
   // Move to starting point
-  robot.setPosition(calibration.data.restPoint.x, calibration.data.restPoint.y, calibration.data.restPoint.z);
+  robot.resetPosition();
 
   // create a server with a host and port
   var server = new Hapi.Server();
@@ -50,12 +52,20 @@ board.on("ready", function() {
     port: args.port
   });
 
+  var getCommonReponseObject = function(err, data) {
+    if (err) {
+      return { status:err.code, data: err };
+    } else {
+      return { status: 0, data: data };
+    }
+  };
+
   server.route({
     method: 'GET',
     path:'/status',
     handler: function (request, reply) {
       console.log("GET " + request.path + ": ");
-      reply('\"OK\"');
+      reply(getCommonReponseObject(null, '"OK"'));
     }
   });
 
@@ -64,8 +74,8 @@ board.on("ready", function() {
     path:'/reset',
     handler: function (request, reply) {
       console.log("POST " + request.path + ": ");
-      robot.reset();
-      reply(robot.getAngles());
+      robot.resetPosition();
+      reply(getCommonReponseObject(null, robot.getAngles()));
     }
   });
 
@@ -75,7 +85,7 @@ board.on("ready", function() {
     handler: function (request, reply) {
       console.log("POST " + request.path + ": ");
       robot.startDancing();
-      reply('\"Dancing!\"');
+      reply(getCommonReponseObject(null, '"Dancing!"'));
     }
   });
 
@@ -85,7 +95,7 @@ board.on("ready", function() {
     handler: function (request, reply) {
       console.log("POST " + request.path + ": ");
       robot.stopDancing();
-      reply('\"No more dancing.\"');
+      reply(getCommonReponseObject(null, '"No more dancing."'));
     }
   });
 
@@ -98,7 +108,7 @@ board.on("ready", function() {
       var theta2 = parseFloat(request.payload.theta2);
       var theta3 = parseFloat(request.payload.theta3);
       robot.setAngles(theta1, theta2, theta3);
-      return reply("\"OK\"");
+      return reply(getCommonReponseObject(null, robot.getAngles()));
     }
   });
 
@@ -111,7 +121,7 @@ board.on("ready", function() {
       var y = parseFloat(request.payload.y);
       var z = parseFloat(request.payload.z);
       robot.setPosition(x, y, z);
-      return reply("\"OK\"");
+      return reply(getCommonReponseObject(null, '"OK"'));
     }
   });
 
@@ -120,7 +130,7 @@ board.on("ready", function() {
     path:'/angles',
     handler: function (request, reply) {
       console.log("GET " + request.path + ": ");
-      return reply(robot.getAngles());
+      return reply(getCommonReponseObject(null, robot.getAngles()));
     }
   });
 
@@ -129,7 +139,7 @@ board.on("ready", function() {
     path:'/position',
     handler: function (request, reply) {
       console.log("POST " + request.path + ": ");
-      return reply(robot.getPosition());
+      return reply(getCommonReponseObject(null, robot.getPosition()));
     }
   });
 
@@ -141,7 +151,27 @@ board.on("ready", function() {
       var x = parseFloat(request.params.x);
       var y = parseFloat(request.params.y);
       var z = parseFloat(request.params.z);
-      return reply(robot.getAnglesForPosition(x,y,z));
+      return reply(getCommonReponseObject(null,robot.getAnglesForPosition(x,y,z)));
+    }
+  });
+
+  server.route({
+    method: 'GET',
+    path:'/calibrationData',
+    handler: function (request, reply) {
+      console.log("GET " + request.path + ": ");
+      return reply(getCommonReponseObject(null, robot.getCalibrationData()));
+    }
+  });
+
+  server.route({
+    method: 'POST',
+    path:'/setCalibrationData',
+    handler: function (request, reply) {
+      console.log("POST " + request.path + ": ");
+      var newData = JSON.parse(request.payload.newData);
+      robot.setCalibrationData(newData);
+      return reply(getCommonReponseObject(null, robot.getCalibrationData()));
     }
   });
 
