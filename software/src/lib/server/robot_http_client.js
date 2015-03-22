@@ -49,6 +49,10 @@ exports.client = function(address, port) {
       var postData = "x=" + x + "&y=" + y + "&z=" + z;
       return post('/setPosition', postData, cb);
     },
+    tap : function(x, y, cb) {
+      var postData = "x=" + x + "&y=" + y;
+      return post('/tap', postData, cb);
+    },
     reset : function(cb) {
       return post('/reset', '', cb);
     },
@@ -59,26 +63,5 @@ exports.client = function(address, port) {
       var postData = "newData=" + JSON.stringify(newData);
       return post('/setCalibrationData', postData, cb);
     }
-    /*
-     positionForCoordinates : function(x,y) {
-     var xmlHttp = new XMLHttpRequest();
-     xmlHttp.open( "GET", this.url('/positionForCoordinates/x/' + x + "/y/" + y), false );
-     xmlHttp.send( null );
-     return eval(xmlHttp.responseText);
-     },
-     coordinatesForPosition : function(x,y) {
-     var xmlHttp = new XMLHttpRequest();
-     xmlHttp.open( "GET", this.url('/coordinatesForPosition/x/' + x + "/y/" + y), false );
-     xmlHttp.send( null );
-     return eval(xmlHttp.responseText);
-     },
-     */
-    /*
-    tap : function(x,y) {
-      var xmlHttp = new XMLHttpRequest();
-      xmlHttp.open( "GET", this.url('/tap/x/' + x + "/y/" + y), false );
-      xmlHttp.send( null );
-      return xmlHttp.responseText;
-    }*/
   };
 };

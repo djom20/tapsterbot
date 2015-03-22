@@ -25,6 +25,8 @@
      "request": "~2.12.0",
      "johnny-five": "git://github.com/rwaldron/johnny-five.git",
      "prompt": "~0.2.14",
-     "request": "~2.12.0"
+     "request": "~2.12.0",
+     "sylvester":"0.0.21",
+     "wd": "0.3.11"
    }
 }

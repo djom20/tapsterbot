@@ -157,6 +157,29 @@ board.on("ready", function() {
 
   server.route({
     method: 'GET',
+    path:'/positionForScreenCoordinates/x/{x}/y/{y}',
+    handler: function (request, reply) {
+      console.log("GET " + request.path + ": ");
+      var x = parseFloat(request.params.x);
+      var y = parseFloat(request.params.y);
+      return reply(getCommonReponseObject(null,robot.getPositionForScreenCoordinates(x,y)));
+    }
+  });
+
+  server.route({
+    method: 'POST',
+    path:'/tap',
+    handler: function (request, reply) {
+      console.log("POST " + request.path + ": ");
+      var x = parseFloat(request.payload.x);
+      var y = parseFloat(request.payload.y);
+      robot.tap(x,y);
+      return reply(getCommonReponseObject(null, '"OK"'));
+    }
+  });
+
+  server.route({
+    method: 'GET',
     path:'/calibrationData',
     handler: function (request, reply) {
       console.log("GET " + request.path + ": ");

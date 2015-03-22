@@ -5,7 +5,7 @@ module.exports.defaultData = {
   restPoint : {
     x : 0,
     y : 0,
-    z : -120
+    z : -130
   },
   servo1 : {
     minimumAngle : 20,
