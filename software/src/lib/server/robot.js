@@ -13,6 +13,28 @@ function Robot(servo1, servo2, servo3, calibration) {
 }
 
 var generateTranslationMatrix = function(calibration) {
+
+    var r1x = calibration.device.contactPoint.position.x;
+    var r1y = calibration.device.contactPoint.position.y;
+    var r2x = calibration.device.point1.position.x;
+    var r2y = calibration.device.point1.position.y;
+    var r3x = calibration.device.point2.position.x;
+    var r3y = calibration.device.point2.position.y;
+
+    var d1x = calibration.device.contactPoint.screenCoordinates.x;
+    var d1y = calibration.device.contactPoint.screenCoordinates.y;
+    var d2x = calibration.device.point1.screenCoordinates.x;
+    var d2y = calibration.device.point1.screenCoordinates.y;
+    var d3x = calibration.device.point2.screenCoordinates.x;
+    var d3y = calibration.device.point2.screenCoordinates.y;
+
+    var deviceXVector = $M([[(d3x-d1x) / (r3x-r1x)], [(d3y-d1y) / (r3x-r1x) ]]);
+    var deviceYVector = $M([[(d2x-d1x) / (r2y-r1y)], [(d2y-d1y) / (r2y-r1y) ]]);
+    var offset = $M([d1x-r1x, d1y-r1y]);
+    var r2dMatrix = $M([[deviceXVector.elements[0], deviceYVector.elements[0]], [deviceXVector.elements[1], deviceYVector.elements[1]]]);
+    return {offset: offset, matrix: r2dMatrix};
+    /*
+
   var b0x = calibration.device.point1.position.x,
     b0y = calibration.device.point1.position.y,
     b1x = calibration.device.point2.position.x,
@@ -35,7 +57,7 @@ var generateTranslationMatrix = function(calibration) {
     [b1y]
   ]);
   var MI = M.inverse();
-  return MI.multiply(u);
+  return MI.multiply(u);*/
 };
 
 var sin = function(degree) {
@@ -85,6 +107,7 @@ method.getPosition = function() {
 };
 
 method.setPosition = function(x, y, z) {
+  console.log("Setting Position:" + [x,y,z]);
   var reflected = reflect(x,y);
   var rotated = rotate(reflected[0],reflected[1]);
   var angles = kinematics.inverse(rotated[0], rotated[1], z);
@@ -109,6 +132,15 @@ method.getAnglesForPosition = function(x,y,z) {
 };
 
 method.getPositionForScreenCoordinates = function(x,y) {
+  var calData = generateTranslationMatrix(this._calibration);
+    var matrix = calData.matrix;
+    var offset = calData.offset;
+    var vector = $M([ [x-offset.elements[0]],[y-offset.elements[1]] ]);
+    var converted = matrix.inverse().multiply(vector);
+    var newX = converted.elements[0];
+    var newY = converted.elements[1];
+    return {x:newX, y:newY};
+    /*
   var matrix = generateTranslationMatrix(this._calibration);
   var a = matrix.elements[0][0],
     b = matrix.elements[1][0],
@@ -116,12 +148,14 @@ method.getPositionForScreenCoordinates = function(x,y) {
     d = matrix.elements[3][0];
   var yprime = a * x + b * y + c;
   var xprime = b * x - a * y + d;
+  console.log("(" + x +"," + y +") => (" + xprime + "," + yprime +")");
   return {x:xprime, y:yprime};
+  */
 };
 
 method.tap = function(screenX, screenY) {
-  var position = this.getPositionForScreenCoordinates(screenX, screenY);
-  var touchZ =  1.01 * Math.min(
+    var position = this.getPositionForScreenCoordinates(screenX, screenY);
+    var touchZ =  1.01 * Math.min(
     this._calibration.device.contactPoint.position.z,
     this._calibration.device.point1.position.z,
     this._calibration.device.point2.position.z);

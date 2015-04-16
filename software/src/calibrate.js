@@ -165,12 +165,14 @@ var calibrateDevice = function(cb) {
   };
   var driver = wd.remote({port:4723});
   // optional extra logging
+  /*
   driver.on('status', function(info) {
     console.log(info.cyan);
   });
   driver.on('command', function(eventType, command, response) {
     console.log(' > ' + eventType.cyan, command, (response || '').grey);
   });
+  */
   driver.on('http', function(meth, path, data) {
     console.log(' > ' + meth.magenta, path, (data || '').grey);
   });
@@ -185,7 +187,8 @@ var calibrateDevice = function(cb) {
             var match = coordRegex.exec(pageSource);
             var screenX = parseFloat(match[1]);
             var screenY = parseFloat(match[2]);
-            return cb(screenX,screenY, currentZ);
+            console.log("Found Point: (" + x + "," + y + ") => (" + screenX + "," + screenY + ")");
+            return cb(x,y,screenX,screenY,currentZ);
           } else {
             if (currentZ < -150) {
               return robot.reset(function() {
@@ -241,16 +244,16 @@ var calibrateDevice = function(cb) {
     udid: "481309bbf8a3c341687e617bb7104be41f3abb07"
   }, function() {
     driver.setImplicitWaitTimeout(1000, function () {
-      return lowerAndCheckForContact(0, 0, -145, function (screenX, screenY, robotZ) {
-        newCalibrationData.device.contactPoint.position = {x: 0, y: 0, z:robotZ};
+      return lowerAndCheckForContact(0, 0, -145, function (x, y, screenX, screenY, robotZ) {
+        newCalibrationData.device.contactPoint.position = {x: x, y: y, z:robotZ};
         newCalibrationData.device.contactPoint.screenCoordinates = {x: screenX, y: screenY};
-        return lowerAndCheckForContact(50, 50, robotZ *.95, function (screenX, screenY, robotZ) {
-          newCalibrationData.device.point1.position = {x: 20, y: 20, z:robotZ};
+        return lowerAndCheckForContact(0, 20, -145, function (x, y, screenX, screenY, robotZ) {
+          newCalibrationData.device.point1.position = {x: x, y: y, z:robotZ};
           newCalibrationData.device.point1.screenCoordinates = {x: screenX, y: screenY};
-          return lowerAndCheckForContact(-50, -50, robotZ *.95, function (screenX, size, robotZ) {
-            newCalibrationData.device.point2.position = {x: -10, y: -15, z:robotZ};
+          return lowerAndCheckForContact(20, 0, -145, function (x, y, screenX, screenY, robotZ) {
+            newCalibrationData.device.point2.position = {x: x, y: y, z:robotZ};
             newCalibrationData.device.point2.screenCoordinates = {x: screenX, y: screenY};
-            return cb();
+            return robot.reset(cb);
           });
         });
       });
