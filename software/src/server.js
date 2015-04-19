@@ -173,8 +173,36 @@ board.on("ready", function() {
       console.log("POST " + request.path + ": ");
       var x = parseFloat(request.payload.x);
       var y = parseFloat(request.payload.y);
-      robot.tap(x,y);
-      return reply(getCommonReponseObject(null, '"OK"'));
+      return robot.tap(x,y,function() {
+        return reply(getCommonReponseObject(null, '"OK"'));
+      });
+    }
+  });
+
+  server.route({
+    method: 'POST',
+    path:'/swipe',
+    handler: function (request, reply) {
+      console.log("POST " + request.path + ": ");
+      var startX = parseFloat(request.payload.startX);
+      var startY = parseFloat(request.payload.startY);
+      var endX = parseFloat(request.payload.endX);
+      var endY = parseFloat(request.payload.endY);
+      return robot.swipe(startX,startY,endX,endY,function() {
+        return reply(getCommonReponseObject(null, '"OK"'));
+      });
+    }
+  });
+
+  server.route({
+    method: 'POST',
+    path:'/sendKeys',
+    handler: function (request, reply) {
+      console.log("POST " + request.path + ": ");
+      var keys = decodeURIComponent(request.payload.keys);
+      return robot.sendKeys(keys, function() {
+        return reply(getCommonReponseObject(null, '"OK"'));
+      });
     }
   });
 

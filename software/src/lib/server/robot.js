@@ -1,7 +1,7 @@
 var kinematics = require("./../kinematics");
 
 require("sylvester");
-
+var keyboards = require("./keyboards");
 var method = Robot.prototype;
 
 function Robot(servo1, servo2, servo3, calibration) {
@@ -153,19 +153,61 @@ method.getPositionForScreenCoordinates = function(x,y) {
   */
 };
 
-method.tap = function(screenX, screenY) {
-    var position = this.getPositionForScreenCoordinates(screenX, screenY);
-    var touchZ =  1.01 * Math.min(
-    this._calibration.device.contactPoint.position.z,
-    this._calibration.device.point1.position.z,
-    this._calibration.device.point2.position.z);
+method.getContactZ = function() {
+  return  1.01 * Math.min(
+      this._calibration.device.contactPoint.position.z,
+      this._calibration.device.point1.position.z,
+      this._calibration.device.point2.position.z
+    );
+};
+
+method.tap = function(screenX, screenY, cb) {
+  var position = this.getPositionForScreenCoordinates(screenX, screenY);
+  var touchZ = this.getContactZ();
   this.setPosition(position.x, position.y, touchZ * 0.9);
-  setTimeout(function() {
+  return setTimeout(function() {
     this.setPosition(position.x, position.y, touchZ);
-    setTimeout(function() {
-      this.resetPosition();
-    }.bind(this), 1000);
-  }.bind(this), 1500);
+    return setTimeout(function() {
+      this.setPosition(position.x, position.y, touchZ * 0.9);
+      return setTimeout(cb, 400);
+    }.bind(this), 400);
+  }.bind(this), 400);
+};
+
+method.swipe = function(startX, startY, endX, endY, cb) {
+  var startPosition = this.getPositionForScreenCoordinates(startX, startY);
+  var endPosition = this.getPositionForScreenCoordinates(endX, endY);
+  var touchZ = this.getContactZ();
+  this.setPosition(startPosition.x, startPosition.y, touchZ * 0.9);
+  return setTimeout(function() {
+    this.setPosition(startPosition.x, startPosition.y, touchZ);
+    return setTimeout(function() {
+      this.setPosition(endPosition.x, endPosition.y, touchZ);
+      return setTimeout(function() {
+        this.setPosition(endPosition.x, endPosition.y, touchZ * 0.9);
+        return setTimeout(cb, 100);
+      }.bind(this), 400);
+    }.bind(this), 400);
+  }.bind(this), 400);
+};
+
+method.sendKeys = function(keys, cb) {
+  var keyboard = keyboards.getKeyboard("iPhone 6"/*this._calibration.device.name*/);
+  var keystrokeSequence = [];
+  for (var keyIndex=0; keyIndex < keys.length; keyIndex++) {
+    keystrokeSequence = keystrokeSequence.concat(keyboard.getKeySequence(keys[keyIndex]));
+  }
+  var tapKey = function(keystrokes, cb) {
+    if (keystrokes.length == 0) {
+      return cb();
+    } else {
+      var currentKeyPosition = keystrokes.shift();
+      this.tap(currentKeyPosition.x, currentKeyPosition.y, function() {
+        return tapKey(keystrokes, cb);
+      });
+    }
+  }.bind(this);
+  return tapKey(keystrokeSequence, cb);
 };
 
 method.startDancing = function() {
